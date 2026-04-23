@@ -6,6 +6,7 @@ from pathlib import Path
 
 from nexus_codex.config import load_config, write_sample_config
 from nexus_codex.runtime import Runtime
+from nexus_codex.scaffold import write_rl_research_starter
 from nexus_codex.scheduler import JobScheduler
 
 
@@ -17,6 +18,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_parser = subparsers.add_parser("init", help="Write a sample jobs.toml")
     init_parser.add_argument("--output", default="jobs.toml", help="Destination config path")
+
+    rl_init = subparsers.add_parser(
+        "init-rl-starter",
+        help="Write an RL research starter project scaffold",
+    )
+    rl_init.add_argument(
+        "--output",
+        default="rl-research-starter",
+        help="Destination directory for the starter project",
+    )
 
     subparsers.add_parser("list-jobs", help="List configured jobs")
 
@@ -109,6 +120,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "init":
         target = write_sample_config(args.output)
         print(f"Wrote sample config to {target}")
+        return 0
+
+    if args.command == "init-rl-starter":
+        paths = write_rl_research_starter(args.output)
+        print(f"Wrote RL starter project to {Path(args.output).resolve()}")
+        for path in paths:
+            print(path)
         return 0
 
     if args.command == "list-jobs":

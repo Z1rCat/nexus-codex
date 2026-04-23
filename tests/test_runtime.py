@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 from nexus_codex.runtime import Runtime
+from nexus_codex.scaffold import write_rl_research_starter
 
 
 def _write_config(path: Path, repo: Path, *, lease_ttl_seconds: int = 1800) -> Path:
@@ -561,3 +562,29 @@ class RuntimeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ScaffoldTests(unittest.TestCase):
+    def test_write_rl_research_starter_creates_expected_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "rl-starter"
+            written = write_rl_research_starter(root)
+            jobs_path = root / "jobs.rl.toml"
+            smoke_script = root / "experiments" / "smoke_train.py"
+            smoke_test = root / "tests" / "test_smoke.py"
+            idea_path = root / "ideas" / "idea.md"
+
+            self.assertTrue(jobs_path.exists())
+            self.assertTrue(smoke_script.exists())
+            self.assertTrue(smoke_test.exists())
+            self.assertTrue(idea_path.exists())
+            self.assertIn(jobs_path, written)
+            self.assertIn(root.resolve().as_posix(), jobs_path.read_text(encoding="utf-8"))
+
+    def test_write_rl_research_starter_rejects_non_empty_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "occupied"
+            root.mkdir()
+            (root / "keep.txt").write_text("x\n", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                write_rl_research_starter(root)
