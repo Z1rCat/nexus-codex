@@ -1,0 +1,103 @@
+[app]
+timezone = "Asia/Shanghai"
+state_dir = ".nexus"
+poll_interval_seconds = 15
+max_concurrent_runs = 2
+lease_ttl_seconds = 1800
+codex_command = ["codex"]
+
+[[jobs]]
+id = "daily-issue-triage"
+enabled = true
+schedule = "*/30 * * * *"
+repo = "A:/repos/example-repo"
+mode = "analysis"
+persistent_session = true
+skip_git_repo_check = false
+sandbox = "workspace-write"
+approval = "never"
+max_daily_wakes = 48
+max_consecutive_failures = 3
+wake_prompt = """
+Continue the ongoing triage session. Review any new repository or issue context
+since the previous wake-up and update the triage state.
+"""
+prompt = """
+Review new issues created in the last 24 hours and produce a concise triage
+report with severity, owner guess, and next action.
+"""
+
+[[jobs]]
+id = "ci-autofix-plan"
+enabled = true
+schedule = "0 * * * *"
+repo = "A:/repos/example-repo"
+mode = "plan_then_execute"
+skip_git_repo_check = false
+sandbox = "workspace-write"
+approval = "never"
+verifier = ["pytest -q", "ruff check ."]
+verifier_max_attempts = 1
+max_consecutive_failures = 2
+prompt = """
+Investigate the latest failing CI signal, propose the smallest credible fix,
+and be ready to implement it after plan approval.
+"""
+
+[[jobs]]
+id = "task-inbox"
+enabled = true
+schedule = "*/5 * * * *"
+repo = "A:/repos/example-repo"
+mode = "analysis"
+skip_git_repo_check = false
+sandbox = "workspace-write"
+approval = "never"
+inbox_dir = "./inbox/tasks"
+inbox_glob = "*.md"
+max_daily_wakes = 24
+max_consecutive_failures = 3
+prompt = """
+Analyze each incoming task file, classify urgency, identify the correct owner or
+next action, and produce a concise operational response.
+"""
+
+[[jobs]]
+id = "multi-agent-fix"
+enabled = true
+schedule = "0 */2 * * *"
+repo = "A:/repos/example-repo"
+mode = "execute"
+skip_git_repo_check = false
+sandbox = "workspace-write"
+approval = "never"
+agent_roles = ["planner", "executor", "reviewer"]
+parallel_executor_count = 3
+reviewer_max_rounds = 1
+verifier = ["pytest -q"]
+verifier_max_attempts = 1
+prompt = """
+Investigate the target issue, plan the smallest credible change, implement it,
+and let the reviewer gate the final result before verification.
+"""
+
+[[jobs]]
+id = "goal-supervisor"
+enabled = true
+schedule = "*/10 * * * *"
+repo = "A:/repos/example-repo"
+mode = "analysis"
+skip_git_repo_check = false
+persistent_session = true
+goal_loop = true
+goal_backoff_seconds = 900
+goal_max_idle_wakes = 3
+prompt = """
+Drive the long-running maintenance goal. Always report goal status using the
+required GOAL_STATUS line and summarize whether the next wake should continue,
+idle, block, or stop.
+"""
+
+[jobs.worktree]
+strategy = "auto"
+cleanup = "if-clean"

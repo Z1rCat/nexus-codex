@@ -1,0 +1,5 @@
+.nexus/
+.nexus-state/
+__pycache__/
+*.pyc
+.codex
