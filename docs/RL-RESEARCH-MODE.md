@@ -30,10 +30,27 @@ The scaffold creates:
 - `tests/test_smoke.py`
 - `jobs.rl.toml`
 
+Import your idea sources:
+
+```powershell
+python -m nexus_codex import-idea `
+  --project A:/path/to/rl-research-starter `
+  --docx "A:/path/to/idea.docx" `
+  --pdf "A:/path/to/idea.pdf"
+```
+
+This writes:
+
+- `ideas/idea.source.docx`
+- `ideas/idea.source.pdf`
+- `ideas/idea.source.txt`
+- `ideas/idea.raw.md`
+- `ideas/idea.md`
+
 ## Suggested Workflow
 
-1. Put the original PDF into `ideas/`
-2. Rewrite the core idea into `ideas/idea.md`
+1. Import the source DOCX/PDF
+2. Review `ideas/idea.md` and clean up any missing structure
 3. Run planning first:
 
 ```powershell

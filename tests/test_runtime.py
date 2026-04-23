@@ -7,8 +7,10 @@ import threading
 import time
 import unittest
 import json
+import zipfile
 from pathlib import Path
 
+from nexus_codex.idea_import import import_idea_bundle
 from nexus_codex.runtime import Runtime
 from nexus_codex.scaffold import write_rl_research_starter
 
@@ -588,3 +590,48 @@ class ScaffoldTests(unittest.TestCase):
             (root / "keep.txt").write_text("x\n", encoding="utf-8")
             with self.assertRaises(ValueError):
                 write_rl_research_starter(root)
+
+    def test_import_idea_bundle_creates_structured_files_from_docx_and_pdf(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "rl-starter"
+            write_rl_research_starter(root)
+            docx_path = Path(tmpdir) / "idea.docx"
+            pdf_path = Path(tmpdir) / "idea.pdf"
+            self._write_fake_docx(
+                docx_path,
+                [
+                    "RECAP RL Prototype Plan",
+                    "Use a minimal environment and validate a short CPU smoke run first.",
+                ],
+            )
+            pdf_path.write_bytes(b"%PDF-1.4\n%fake\n")
+
+            imported = import_idea_bundle(root, docx_path=docx_path, pdf_path=pdf_path)
+            source_text = imported.source_text_path.read_text(encoding="utf-8")
+            idea_markdown = imported.idea_markdown_path.read_text(encoding="utf-8")
+            raw_markdown = imported.raw_markdown_path.read_text(encoding="utf-8")
+
+            self.assertTrue((root / "ideas" / "idea.source.docx").exists())
+            self.assertTrue((root / "ideas" / "idea.source.pdf").exists())
+            self.assertIn("RECAP RL Prototype Plan", source_text)
+            self.assertIn("## Source Highlights", idea_markdown)
+            self.assertIn("RECAP RL Prototype Plan", idea_markdown)
+            self.assertIn("Imported Idea Raw Notes", raw_markdown)
+
+    def test_import_idea_bundle_requires_at_least_one_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "rl-starter"
+            write_rl_research_starter(root)
+            with self.assertRaises(ValueError):
+                import_idea_bundle(root)
+
+    def _write_fake_docx(self, path: Path, paragraphs: list[str]) -> None:
+        document_xml = (
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+            "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+            "<w:body>"
+            + "".join(f"<w:p><w:r><w:t>{paragraph}</w:t></w:r></w:p>" for paragraph in paragraphs)
+            + "</w:body></w:document>"
+        )
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("word/document.xml", document_xml)

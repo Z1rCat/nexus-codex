@@ -45,13 +45,15 @@ python -m nexus_codex worker
 
 Experimental branch note:
 `feature/rl-research-assistant` also adds `python -m nexus_codex init-rl-starter`
-to scaffold an RL idea-to-prototype starter project. See
+and `python -m nexus_codex import-idea` to scaffold and ingest RL research
+materials. See
 [docs/RL-RESEARCH-MODE.md](docs/RL-RESEARCH-MODE.md).
 
 ## Commands
 
 - `python -m nexus_codex init`
 - `python -m nexus_codex init-rl-starter --output <dir>`
+- `python -m nexus_codex import-idea --project <dir> --docx <file> --pdf <file>`
 - `python -m nexus_codex list-jobs`
 - `python -m nexus_codex run-once <job-id>`
 - `python -m nexus_codex dispatch-job <job-id> --trigger schedule`

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from nexus_codex.config import load_config, write_sample_config
+from nexus_codex.idea_import import import_idea_bundle
 from nexus_codex.runtime import Runtime
 from nexus_codex.scaffold import write_rl_research_starter
 from nexus_codex.scheduler import JobScheduler
@@ -28,6 +29,14 @@ def build_parser() -> argparse.ArgumentParser:
         default="rl-research-starter",
         help="Destination directory for the starter project",
     )
+
+    import_idea = subparsers.add_parser(
+        "import-idea",
+        help="Import DOCX/PDF idea files into an RL starter project",
+    )
+    import_idea.add_argument("--project", required=True, help="Project root directory")
+    import_idea.add_argument("--docx", help="Path to the source DOCX idea file")
+    import_idea.add_argument("--pdf", help="Path to the source PDF idea file")
 
     subparsers.add_parser("list-jobs", help="List configured jobs")
 
@@ -127,6 +136,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Wrote RL starter project to {Path(args.output).resolve()}")
         for path in paths:
             print(path)
+        return 0
+
+    if args.command == "import-idea":
+        imported = import_idea_bundle(
+            args.project,
+            docx_path=args.docx,
+            pdf_path=args.pdf,
+        )
+        print(json.dumps(_json_safe(imported.__dict__), indent=2, sort_keys=True))
         return 0
 
     if args.command == "list-jobs":
@@ -310,10 +328,7 @@ def main(argv: list[str] | None = None) -> int:
 def _json_safe(payload: dict[str, object]) -> dict[str, object]:
     converted: dict[str, object] = {}
     for key, value in payload.items():
-        if isinstance(value, Path):
-            converted[key] = str(value)
-        else:
-            converted[key] = value
+        converted[key] = _json_safe_value(value)
     return converted
 
 
@@ -322,3 +337,13 @@ def _short_id(value: object) -> str:
     if text == "-":
         return text
     return text if len(text) <= 12 else text[:12]
+
+
+def _json_safe_value(value: object) -> object:
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe_value(item) for item in value]
+    return value
